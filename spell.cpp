@@ -3,26 +3,201 @@
 #include <map>
 #include <string>
 #include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <tuple>
+#include <iterator>
 
 using namespace std;
 
+void insert_to_map_set(map<string, int> &, set<string> &, string);
+long int sum_values(map<string, int> &);
+inline double P(map<string, int> &, string, long int);
+void insert_to_map_set(map<string, int> &, set<string> &, string);
+long int sum_values(map<string, int> &);
+set<string> edits1(string);
+set<string> edits2(string);
+set<string> known(map<string, int> &, set<string>);
+set<string> candidates(map<string, int> &, string);
+string correction(map<string, int> &, string);
+
 int main(int argc, char ** argv) {
 
-  map<string, int> word;
+  map<string, int> words;
+  set<string> u_words;
 
-  word["ABC"] = 1;
-  word["abc"] = 2;
-
-  cout << word["ab"] << endl;
-
+  
   regex exp("(\\b\\S*\\b)");
   smatch res;
-  string str = "first second third forth";
-
-  while (regex_search(str, res, exp)) {
-    cout << res[0] << endl;
-    str = res.suffix();
+  
+  
+  std::ifstream infile("/home/monster/Dropbox/big.txt");
+  std::string line;
+  while (std::getline(infile, line)) {
+    while (regex_search(line, res, exp)) {
+      string word = res[0];
+      std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+      insert_to_map_set(words, u_words, word);
+      line = res.suffix();
+    }
   }
+
+  long int N = sum_values(words);
+
+  cout << correction(words, "papr");
   
   return 0;
 }
+
+void insert_to_map_set(map<string, int> & words, set<string> & u_words, string word) {
+  if (words[word] == 0){
+    words[word] = 1;
+    u_words.insert(word);
+  }
+  else
+    words[word] += 1;
+}
+
+long int sum_values(map<string, int> & words) {
+  int sum = 0;
+  
+  for (map<string, int>::iterator it = words.begin(); it != words.end(); ++it) {
+    sum += words[it->first];
+  }
+
+  return sum;
+}
+
+
+inline double P(map<string, int> & words, string word, long int N) {
+  return (double)words[word] / N;
+}
+
+set<string> edits1(string word) {
+  string letters = "abcdefghijklmnopqrstuvwxyz";
+
+  vector<tuple<string, string>> splits;
+  for (int i = 0; i < word.length(); i++)
+    splits.push_back(make_tuple(word.substr(0, i), word.substr(i, -1)));
+
+  vector<string> deletes;
+
+  
+  for (auto& t: splits) { 
+    if (get<0>(t).compare("")) {
+    deletes.push_back(get<0>(t) + (get<1>(t)).substr(1, -1));
+    }
+  }
+
+  
+  vector<string> transposes;
+
+  for (auto& t: splits) {
+    if ((get<1>(t)).length() > 1) {
+      deletes.push_back(get<0>(t) + get<1>(t)[1] + get<1>(t)[0] + (get<1>(t)).substr(2, -1));
+    }
+  }
+
+  vector<string> replaces;
+  
+  for (auto& t: splits) {
+    if (get<0>(t).compare("")) {
+      for (auto it = letters.begin(); it < letters.end(); ++it) {
+	replaces.push_back(get<0>(t) + *it + (get<1>(t)).substr(1, -1));
+      }
+    }
+  }
+
+  vector<string> inserts;
+
+  for (auto& t: splits) {
+    for (auto it = letters.begin(); it < letters.end(); ++it) {
+      inserts.push_back(get<0>(t) + *it + get<1>(t));
+    }
+  }
+
+  set<string> return_set;
+
+  /*
+  std::set_union(deletes.begin(), deletes.end(),
+	    transposes.begin(), transposes.end(),
+	    replaces.begin(), replaces.end(),
+	    inserts.begin(), inserts.end(),
+		 std::back_inserter(return_set));
+  
+  */
+  
+  return_set.insert(deletes.begin(), deletes.end());
+  return_set.insert(transposes.begin(), transposes.end());
+  return_set.insert(replaces.begin(), replaces.end());
+  return_set.insert(inserts.begin(), inserts.end());
+
+  
+  return return_set;
+}
+
+
+set<string> edits2(string word) {
+
+  set<string> return_set;
+  
+  for (auto& e1 : edits1(word)) {
+    for (auto& e2: edits1(e1)) {
+      return_set.insert(e2);
+    }
+  }
+
+  return return_set;
+}
+
+set<string> known(map<string, int> & words, set<string> my_words) {
+
+  set<string> return_set;
+
+  for (auto& w: my_words) {
+    if (words[w] != 0) {
+      return_set.insert(w);
+    }
+  }
+
+  return return_set;
+}
+
+set<string> candidates(map<string, int> & words, string word) {
+
+  set<string> return_set;
+  return_set = known(words, set<string> { word });
+  if (return_set.size() != 0)
+    return return_set;
+  
+  return_set = known(words, edits1(word));
+  if (return_set.size() != 0)
+    return return_set;
+
+  return_set = known(words, edits2(word));
+  if (return_set.size() != 0)
+    return return_set;
+
+  return set<string> { word };
+}
+
+
+string correction(map<string, int> & words, string word) {
+
+  vector<double> scores;
+  long int sum = sum_values(words);
+  set<string> get_candidates = candidates(words, word);
+
+  for (auto& gc: get_candidates) {
+    scores.push_back(P(words, gc, sum));
+  }
+
+  int n = distance(scores.begin(), max_element(scores.begin(), scores.end()));
+
+  auto it = get_candidates.begin();
+  advance(it, n);
+  return *it;
+}
+
