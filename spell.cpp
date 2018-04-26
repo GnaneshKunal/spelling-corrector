@@ -26,8 +26,8 @@ string correction(map<string, int> &, string);
 int main(int argc, char ** argv) {
 
   
-  if (argc != 2) {
-    cout << "Usage: " << argv[0] << " [word]" << endl;
+  if (argc != 3) {
+    cout << "Usage: " << argv[0] << " [bigfile] [word]" << endl;
     exit(0);
   }
   
@@ -39,7 +39,7 @@ int main(int argc, char ** argv) {
   smatch res;
   
   
-  ifstream infile("/home/monster/Dropbox/big.txt");
+  ifstream infile(argv[1]);
   string line;
   while (getline(infile, line)) {
     while (regex_search(line, res, exp)) {
@@ -52,7 +52,7 @@ int main(int argc, char ** argv) {
 
   long int N = sum_values(words);
 
-  cout << correction(words, argv[1]);
+  cout << correction(words, argv[2]);
   
   return 0;
 }
