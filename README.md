@@ -5,7 +5,7 @@ Download the [big file](https://norvig.com/big.txt)
 
 ## Usage
 ```bash
-clang++ -std=c++11
+make
 ./a.out [bigfile] [word]
 ```
 
