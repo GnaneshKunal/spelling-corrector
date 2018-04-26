@@ -25,6 +25,12 @@ string correction(map<string, int> &, string);
 
 int main(int argc, char ** argv) {
 
+  
+  if (argc != 2) {
+    cout << "Usage: " << argv[0] << " [word]" << endl;
+    exit(0);
+  }
+  
   map<string, int> words;
   set<string> u_words;
 
@@ -33,12 +39,12 @@ int main(int argc, char ** argv) {
   smatch res;
   
   
-  std::ifstream infile("/home/monster/Dropbox/big.txt");
-  std::string line;
-  while (std::getline(infile, line)) {
+  ifstream infile("/home/monster/Dropbox/big.txt");
+  string line;
+  while (getline(infile, line)) {
     while (regex_search(line, res, exp)) {
       string word = res[0];
-      std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+      transform(word.begin(), word.end(), word.begin(), ::tolower);
       insert_to_map_set(words, u_words, word);
       line = res.suffix();
     }
@@ -46,7 +52,7 @@ int main(int argc, char ** argv) {
 
   long int N = sum_values(words);
 
-  cout << correction(words, "papr");
+  cout << correction(words, argv[1]);
   
   return 0;
 }
@@ -82,58 +88,19 @@ set<string> edits1(string word) {
   for (int i = 0; i < word.length(); i++)
     splits.push_back(make_tuple(word.substr(0, i), word.substr(i, -1)));
 
-  vector<string> deletes;
-
-  
-  for (auto& t: splits) { 
-    if (get<0>(t).compare("")) {
-    deletes.push_back(get<0>(t) + (get<1>(t)).substr(1, -1));
-    }
-  }
-
-  
-  vector<string> transposes;
-
-  for (auto& t: splits) {
-    if ((get<1>(t)).length() > 1) {
-      deletes.push_back(get<0>(t) + get<1>(t)[1] + get<1>(t)[0] + (get<1>(t)).substr(2, -1));
-    }
-  }
-
-  vector<string> replaces;
-  
-  for (auto& t: splits) {
-    if (get<0>(t).compare("")) {
-      for (auto it = letters.begin(); it < letters.end(); ++it) {
-	replaces.push_back(get<0>(t) + *it + (get<1>(t)).substr(1, -1));
-      }
-    }
-  }
-
-  vector<string> inserts;
-
-  for (auto& t: splits) {
-    for (auto it = letters.begin(); it < letters.end(); ++it) {
-      inserts.push_back(get<0>(t) + *it + get<1>(t));
-    }
-  }
-
   set<string> return_set;
 
-  /*
-  std::set_union(deletes.begin(), deletes.end(),
-	    transposes.begin(), transposes.end(),
-	    replaces.begin(), replaces.end(),
-	    inserts.begin(), inserts.end(),
-		 std::back_inserter(return_set));
-  
-  */
-  
-  return_set.insert(deletes.begin(), deletes.end());
-  return_set.insert(transposes.begin(), transposes.end());
-  return_set.insert(replaces.begin(), replaces.end());
-  return_set.insert(inserts.begin(), inserts.end());
-
+  for (auto& t: splits) {
+    if (get<0>(t).compare("")) {
+      if ((get<1>(t)).length() > 1)
+	return_set.insert(get<0>(t) + get<1>(t)[1] + get<1>(t)[0] + (get<1>(t)).substr(2, -1)); // transposes
+      return_set.insert(get<0>(t) + (get<1>(t)).substr(1, -1)); // deletes
+      for (auto it = letters.begin(); it < letters.end(); ++it)
+	return_set.insert(get<0>(t) + *it + (get<1>(t)).substr(1, -1)); // replaces
+    }
+    for (auto it = letters.begin(); it < letters.end(); ++it)
+      return_set.insert(get<0>(t) + *it + get<1>(t)); // inserts
+  }
   
   return return_set;
 }
