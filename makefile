@@ -23,6 +23,3 @@ $(MAIN): $(OBJS)
 
 clean:
 		$(RM) *.o *~ $(MAIN)
-
-depend: $(SRCS)
-		makedepend $(INCLUDES) $^
